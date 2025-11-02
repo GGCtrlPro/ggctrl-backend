@@ -1,27 +1,37 @@
-const express = require("express");
-const cors = require("cors");
-const { Connection, PublicKey } = require("@solana/web3.js");
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import { Connection, PublicKey } from "@solana/web3.js";
+import linkRoutes from "./routes/link.js";
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Solana RPC connection
+// MongoDB Connection
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => console.error("❌ MongoDB error:", err));
+
+// Solana RPC
 const connection = new Connection("https://api.mainnet-beta.solana.com");
 
-// Home route
+// Routes
 app.get("/", (req, res) => {
   res.send("✅ GGCTRL backend online + Solana connected!");
 });
 
-// Verify wallet route
 app.get("/api/verify-wallet/:address", async (req, res) => {
   try {
     const { address } = req.params;
     const publicKey = new PublicKey(address);
-
     const balance = await connection.getBalance(publicKey);
 
     res.json({
@@ -37,13 +47,10 @@ app.get("/api/verify-wallet/:address", async (req, res) => {
   }
 });
 
-// Link wallet (optional)
-app.post("/connect", (req, res) => {
-  const { walletAddress } = req.body;
-  if (!walletAddress) return res.status(400).send("Missing wallet address");
-  res.send(`Wallet ${walletAddress} linked successfully.`);
-});
+// Use your link route
+app.use("/api/link", linkRoutes);
 
+// Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
